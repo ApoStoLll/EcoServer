@@ -13,27 +13,32 @@ class LolHTTPServer:
         self._host = host
         self._port = port
         self._server_name = server_name
-    
     def serve_forever(self):
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM, proto=0)
         try:
             server_socket.bind((self._host, self._port))
             server_socket.listen()
+            client_id = 0
             while True:
                 conn, _ = server_socket.accept()
                 try:
+                    print("kk")
                     #self.serve_client(conn)
-                    t = threading.Thread(target=self.serve_client, args=(conn))
+                    t = threading.Thread(target=self.serve_client, args=(conn, client_id))
                     t.start()
+                    client_id += 1
                 except Exception as e:
                     print('Client serving failed', e)
         finally:
             server_socket.close()
     
-    def serve_client(self, conn):
+    def serve_client(self, conn, client_id):
         try:
             req = self.parse_request(conn)
+            print(req)
             resp = self.handle_request(req)
+            print("RESPONSE")
+            print(resp)
             self.send_response(conn, resp)
         except ConnectionResetError:
             conn = None
@@ -43,6 +48,7 @@ class LolHTTPServer:
             conn.close()
 
     def parse_request(self, conn):
+        print("parsing")
         rfile = conn.makefile('rb')
         method, target, ver = self.parse_request_line(rfile)
         headers = self.parse_headers(rfile) 
@@ -54,12 +60,18 @@ class LolHTTPServer:
         return Request(method, target, ver, headers, rfile)
 
     def parse_request_line(self, rfile):
+        print("Parsing 2")
         raw = rfile.readline(MAX_LINE + 1)
+        print("Before int", raw)
         if len(raw) > MAX_LINE:
+            print("HUINA")
             raise Exception('Request line is too long')
+        #print("skip if")
         request_line = str(raw, 'iso-8859-1')
+        print(request_line)
         request_line = request_line.rstrip('\r\n')
         words = request_line.split()
+        print(words)
         if len(words) != 3:
             raise Exception('Malformed request line')
         #method, target, ver = words
@@ -70,7 +82,7 @@ class LolHTTPServer:
     def parse_headers(self, rfile):
         headers = []
         while True:
-            line = rfile.readline(MAX_LINE + 1)
+            line = rfile.readline()
             if len(line) > MAX_LINE:
                 raise Exception('Header line is too long')
             if line in (b'\r\n', b'\n', b''):

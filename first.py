@@ -6,4 +6,4 @@ serv = sv.LolHTTPServer(host, port, name)
 try:
     serv.serve_forever()
 except KeyboardInterrupt:
-    pass
+    print("CHO")
