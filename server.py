@@ -35,7 +35,7 @@ class LolHTTPServer:
     def serve_client(self, conn, client_id):
         try:
             req = self.parse_request(conn)
-            print(req)
+            print("REQUEST FROM", client_id," IS ", req)
             resp = self.handle_request(req)
             print("RESPONSE")
             print(resp)
@@ -49,7 +49,8 @@ class LolHTTPServer:
 
     def parse_request(self, conn):
         print("parsing")
-        rfile = conn.makefile('rb')
+        #rfile = conn.makefile('rb')
+        rfile = conn
         method, target, ver = self.parse_request_line(rfile)
         headers = self.parse_headers(rfile) 
         host = headers.get('Host')
@@ -61,8 +62,9 @@ class LolHTTPServer:
 
     def parse_request_line(self, rfile):
         print("Parsing 2")
-        raw = rfile.readline(MAX_LINE + 1)
-        print("Before int", raw)
+        #raw = rfile.readline(MAX_LINE + 1)
+        #print("Before int", raw)
+        raw = self.readOneLine(rfile)
         if len(raw) > MAX_LINE:
             print("HUINA")
             raise Exception('Request line is too long')
@@ -79,12 +81,20 @@ class LolHTTPServer:
             raise Exception('Unexpected HTTP version')
         return words
 
+    def readOneLine(self, conn):
+        raw = ''
+        while '\r\n' not in raw:
+            byte = conn.recv(1)
+            raw += str(byte, 'iso-8859-1')
+        return raw
+
     def parse_headers(self, rfile):
         headers = []
         while True:
-            line = rfile.readline()
-            if len(line) > MAX_LINE:
-                raise Exception('Header line is too long')
+            #line = rfile.readline()
+            #if len(line) > MAX_LINE:
+            #    raise Exception('Header line is too long')
+            line = self.readOneLine(rfile)
             if line in (b'\r\n', b'\n', b''):
                 break
             headers.append(line)
