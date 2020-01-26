@@ -7,4 +7,3 @@ try:
     serv.serve_forever()
 except KeyboardInterrupt:
     print("CHO")
-#https://github.com/ApoStoLll/EcoServer.git

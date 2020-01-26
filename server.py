@@ -35,10 +35,10 @@ class LolHTTPServer:
     def serve_client(self, conn, client_id):
         try:
             req = self.parse_request(conn)
-            print("REQUEST FROM", client_id," IS ", req)
+            print("REQUEST FROM", client_id," ", req)
             resp = self.handle_request(req)
-            print("RESPONSE")
-            print(resp)
+            #print("RESPONSE")
+            print("RESPONSE ", resp)
             self.send_response(conn, resp)
         except ConnectionResetError:
             conn = None
@@ -49,22 +49,25 @@ class LolHTTPServer:
 
     def parse_request(self, conn):
         print("parsing")
-        #rfile = conn.makefile('rb')
-        rfile = conn
+        rfile = conn.makefile('rb')
         method, target, ver = self.parse_request_line(rfile)
         headers = self.parse_headers(rfile) 
+        print("HEADERS: ", headers)
         host = headers.get('Host')
-        if not host:
-            raise Exception("Bad request")
-        if host not in (self._server_name, f'{self._server_name}:{self._port}'):
-            raise Exception('Not found')
-        return Request(method, target, ver, headers, rfile)
+        print("HOST ", host)
+        #if not host:
+        #    raise Exception("Bad request")
+        #if host not in (self._server_name, f'{self._server_name}:{self._port}'):
+        #    raise Exception('Not found')
+        print("REQUEST: ")
+        req = Request(method, target, ver, headers, rfile)
+        print(req)
+        return req
 
     def parse_request_line(self, rfile):
         print("Parsing 2")
-        #raw = rfile.readline(MAX_LINE + 1)
-        #print("Before int", raw)
-        raw = self.readOneLine(rfile)
+        raw = rfile.readline(MAX_LINE + 1)
+        print("Raw: ", raw)
         if len(raw) > MAX_LINE:
             print("HUINA")
             raise Exception('Request line is too long')
@@ -73,39 +76,40 @@ class LolHTTPServer:
         print(request_line)
         request_line = request_line.rstrip('\r\n')
         words = request_line.split()
-        print(words)
-        if len(words) != 3:
-            raise Exception('Malformed request line')
+        print("WORDS ", words)
+        #if len(words) != 3:
+        #    raise Exception('Malformed request line')
         #method, target, ver = words
-        if words[2] != 'HTTP/1.1':
-            raise Exception('Unexpected HTTP version')
+        #if words[2] != 'HTTP/1.1':
+         #   raise Exception('Unexpected HTTP version')
         return words
-
-    def readOneLine(self, conn):
-        raw = ''
-        while '\r\n' not in raw:
-            byte = conn.recv(1)
-            raw += str(byte, 'iso-8859-1')
-        return raw
 
     def parse_headers(self, rfile):
         headers = []
         while True:
-            #line = rfile.readline()
-            #if len(line) > MAX_LINE:
-            #    raise Exception('Header line is too long')
-            line = self.readOneLine(rfile)
+            line = rfile.readline()
+            if not line:
+                break
+            if len(line) > MAX_LINE:
+                raise Exception('Header line is too long')
             if line in (b'\r\n', b'\n', b''):
                 break
             headers.append(line)
             if len(headers) > MAX_HEADERS:
                 raise Exception('Too many headers')
-        sheaders = b''.join(headers).decode('iso-8859-1')
-        return Parser().parsestr(sheaders)
+        if headers:
+            print("BEFORE JOIN")
+            sheaders = b''.join(headers).decode('iso-8859-1')
+        # print("SHADERS ", sheaders)
+            kek = Parser().parsestr(sheaders)
+            print("PARS: ", kek)
+            return kek
+        else:
+            return {'headed': 'no head'}
 
     def handle_request(self, req):
         #if req.path == '/users' and req.method == 'POST'
-        return Response(200, 'OK')
+        return Response(200, 'OK', req.reason)
 
     def send_response(self, conn, resp):
         wfile = conn.makefile('wb')
@@ -116,6 +120,7 @@ class LolHTTPServer:
                 header_line = f'{key}: {value}\r\n'
                 wfile.write(header_line.encode('iso-8859-1'))
         wfile.write(b'\r\n')
+        print("RESPONSE ", resp)
         if resp.body:
             wfile.write(resp.body)
         wfile.flush()
