@@ -98,7 +98,6 @@ class LolHTTPServer:
             if len(headers) > MAX_HEADERS:
                 raise Exception('Too many headers')
         if headers:
-            print("BEFORE JOIN")
             sheaders = b''.join(headers).decode('iso-8859-1')
         # print("SHADERS ", sheaders)
             kek = Parser().parsestr(sheaders)
@@ -109,7 +108,7 @@ class LolHTTPServer:
 
     def handle_request(self, req):
         #if req.path == '/users' and req.method == 'POST'
-        return Response(200, 'OK', req.reason)
+        return Response(200, 'OK')
 
     def send_response(self, conn, resp):
         wfile = conn.makefile('wb')
