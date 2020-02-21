@@ -1,7 +1,7 @@
 import socket
 import sys
 import threading
-import dbManager as dataBase
+import dbManager
 from email.parser import Parser
 from functools import lru_cache
 from urllib.parse import parse_qs, urlparse
@@ -14,7 +14,6 @@ class LolHTTPServer:
         self._host = host
         self._port = port
         self._server_name = server_name
-        self.db = dataBase.dbManager()
 
     def serve_forever(self):
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM, proto=0)
@@ -38,7 +37,7 @@ class LolHTTPServer:
     def serve_client(self, conn, client_id):
         try:
             req = self.parse_request(conn)
-            print("REQUEST FROM", client_id," ", req)
+            #print("REQUEST FROM", client_id," ", req)
             resp = self.handle_request(req)
             #print("RESPONSE")
             print("RESPONSE ", resp)
@@ -62,9 +61,10 @@ class LolHTTPServer:
         #    raise Exception("Bad request")
         #if host not in (self._server_name, f'{self._server_name}:{self._port}'):
         #    raise Exception('Not found')
-        print("REQUEST: ")
+        print("REQUEST : ")
         req = Request(method, target, ver, headers, rfile)
-        print(req)
+        print(req.path)
+        print(req.query)
         return req
 
     def parse_request_line(self, rfile):
@@ -110,13 +110,25 @@ class LolHTTPServer:
             return {'headed': 'no head'}
 
     def handle_request(self, req):
-        if req.path == '/users' and req.method == 'POST':
-            create_user(req)
-        return Response(200, 'OK')
+        db = dbManager.dbManager()
+        if req.path == '/users': #and req.method == 'POST':
+            return self.create_user(req, db)
+        if req.path == '/user':
+            return self.checkUser(req, db)
+        #return Response(200, 'OK')
+        raise Exception('Not found')
+    
+    def checkUser(self, req, db):
+        user = db.checkUser(req.query['username'][0], req.query['password'][0])
+        if user is None:
+            return Response(404, "User not found")
+        else:
+            return Response(200, 'OK')
 
-    def create_user(self, req):
-        #parse req
-        return
+    def create_user(self, req, db):
+        print("CREATING USER")
+        db.addUser(req.query['username'][0], req.query['name'][0], req.query['password'][0], req.query['email'][0])
+        return Response(204, 'Created')
 
     def send_response(self, conn, resp):
         wfile = conn.makefile('wb')
