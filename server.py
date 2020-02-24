@@ -119,7 +119,7 @@ class LolHTTPServer:
         raise Exception('Not found')
     
     def checkUser(self, req, db):
-        user = db.checkUser(req.query['username'][0], req.query['password'][0])
+        user = db.getUser(req.query['username'][0], req.query['password'][0])
         if user is None:
             return Response(404, "User not found")
         else:
